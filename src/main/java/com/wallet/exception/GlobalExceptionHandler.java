@@ -38,6 +38,13 @@ public class GlobalExceptionHandler {
                                 .body(new ErrorResponse(400, "VALIDATION_ERROR", message, req.getRequestURI()));
         }
 
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex,
+                        HttpServletRequest req) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(new ErrorResponse(404, "NOT_FOUND", ex.getMessage(), req.getRequestURI()));
+        }
+
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest req) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
