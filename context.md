@@ -15,7 +15,7 @@
 
 ---
 
-## 📊 2. Overall Progress Status: 55% / 100%
+## 📊 2. Overall Progress Status: 95% / 100%
 
 ### Phase Status Breakdown:
 * [x] **Phase 1: Project Setup & Configuration (100% / 8%)** — Maven, JPA/MySQL, `.env` / `application.properties`.
@@ -23,12 +23,13 @@
 * [x] **Phase 3: Registration & Automatic Wallet Creation (100% / 10%)** — `POST /api/auth/register`, password hashing, duplicate 409 checks, auto wallet creation with 0.00 balance.
 * [x] **Phase 4: Spring Security, BCrypt & JWT Login (100% / 12%)** — `POST /api/auth/login`, `JwtService`, `JwtAuthenticationFilter`, `SecurityConfig`.
 * [x] **Phase 5: User Profile & Wallet Inspection Endpoints (100% / 8%)** — `GET /api/users/me`, `PUT /api/users/me`, `GET /api/wallet`.
-* [ ] **Phase 6: Add Money & Withdraw (0% / 10%)** — *NEXT UP*.
-* [ ] **Phase 7: Atomic Money Transfer (0% / 12%)** — `POST /api/transactions/transfer` with `@Transactional`.
-* [ ] **Phase 8: Transaction History (25% / 6%)** — `GET /api/transactions` (Repository query done, Service/Controller pending).
-* [ ] **Phase 9: Admin Operations & Wallet Freeze/Activate (0% / 8%)** — `GET /api/admin/users`, `GET /api/admin/transactions`, freeze/activate endpoints, `ROLE_ADMIN`.
-* [ ] **Phase 10: Exception Handling & Swagger/OpenAPI (50% / 6%)** — Springdoc OpenAPI setup + custom financial exceptions.
-* [ ] **Phase 11: Unit/Integration Tests & README (0% / 8%)** — All 15 PRD Section 18 test cases + `README.md`.
+* [x] **Phase 6: Add Money & Withdraw (100% / 10%)** — `POST /api/wallet/add-money`, `POST /api/wallet/withdraw`, balance mutation, transaction ledger creation, `@Transactional`.
+* [x] **Phase 7: Atomic Money Transfer (100% / 12%)** — `POST /api/transactions/transfer` with `@Transactional`, IDOR safety, freeze & balance checks.
+* [x] **Phase 8: Transaction History (100% / 6%)** — `GET /api/transactions` (Sorted newest first, IDOR safe, `@Transactional(readOnly = true)`).
+* [x] **Phase 9: Admin Operations & Wallet Freeze/Activate (100% / 8%)** — `GET /api/admin/users`, `GET /api/admin/transactions`, `PUT /api/admin/wallets/{id}/freeze`, `PUT /api/admin/wallets/{id}/activate`, `ROLE_ADMIN` protection.
+* [x] **Phase 10: Exception Handling & Swagger/OpenAPI (100% / 6%)** — Springdoc OpenAPI 3.0 UI, JWT Bearer Scheme, global CORS enabled.
+* [ ] **Phase 11: Unit/Integration Tests & README (0% / 8%)** — *NEXT UP*: All 15 PRD Section 18 test cases + `README.md`.
+
 
 ---
 
@@ -38,20 +39,25 @@
 src/main/java/com/wallet/
 ├── App.java                               # Spring Boot Application Entry Point
 ├── config/
-│   └── SecurityConfig.java                # Spring Security filter chain (Stateless, JWT Filter, BCrypt bean)
+│   └── SecurityConfig.java                # Spring Security filter chain (Stateless, JWT Filter, BCrypt bean, Admin RBAC)
 ├── controller/
+│   ├── AdminController.java               # GET /api/admin/users, GET /api/admin/transactions, PUT /api/admin/wallets/{id}/freeze & activate
 │   ├── AuthController.java                # POST /api/auth/register, POST /api/auth/login
+│   ├── TransactionController.java         # POST /api/transactions/transfer, GET /api/transactions
 │   ├── UserController.java                # GET /api/users/me, PUT /api/users/me
-│   └── WalletController.java              # GET /api/wallet
+│   └── WalletController.java              # GET /api/wallet, POST /api/wallet/add-money, POST /api/wallet/withdraw
 ├── dto/
 │   ├── request/
+│   │   ├── AmountRequest.java             # amount (NotNull, DecimalMin, Digits)
 │   │   ├── LoginRequest.java              # email, password
 │   │   ├── RegisterRequest.java           # name, email, phone, password
+│   │   ├── TransferRequest.java           # receiverEmail, amount, remarks
 │   │   └── UpdateProfileRequest.java      # name, phone (whitelisted to prevent mass assignment)
 │   └── response/
 │       ├── ErrorResponse.java             # timestamp, status, code, message, path
 │       ├── LoginResponse.java             # token, expiresIn
 │       ├── RegisterResponse.java          # message
+│       ├── TransactionResponse.java       # referenceId, type, amount, status, remarks, createdAt
 │       ├── UserProfileResponse.java       # id, name, email, phone, role, createdAt (no passwordHash!)
 │       └── WalletResponse.java            # walletId, balance, status
 ├── entity/
@@ -64,21 +70,26 @@ src/main/java/com/wallet/
 │   └── WalletStatus.java                  # Enum: ACTIVE, FROZEN
 ├── exception/
 │   ├── EmailAlreadyExistsException.java   # 409 CONFLICT
-│   ├── GlobalExceptionHandler.java        # @RestControllerAdvice handling 400, 401, 404, 409, 500
+│   ├── GlobalExceptionHandler.java        # @RestControllerAdvice handling 400, 401, 403, 404, 409, 500
+│   ├── InsufficientBalanceException.java  # 400 BAD_REQUEST
 │   ├── InvalidCredentialsException.java   # 401 UNAUTHORIZED
 │   ├── PhoneAlreadyExistsException.java   # 409 CONFLICT
-│   └── ResourceNotFoundException.java     # 404 NOT_FOUND
+│   ├── ResourceNotFoundException.java     # 404 NOT_FOUND
+│   ├── SelfTransferException.java         # 400 BAD_REQUEST
+│   └── WalletFrozenException.java         # 403 FORBIDDEN
 ├── repository/
-│   ├── TransactionRepository.java         # findBySenderWalletIdOrReceiverWalletIdOrderByCreatedAtDesc
+│   ├── TransactionRepository.java         # findBySenderWalletIdOrReceiverWalletIdOrderByCreatedAtDesc, findAllByOrderByCreatedAtDesc
 │   ├── UserRepository.java                # findByEmail, existsByEmail, existsByPhone, existsByPhoneAndIdNot
 │   └── WalletRepository.java              # findByUserId
 ├── security/
 │   ├── JwtAuthenticationFilter.java       # OncePerRequestFilter parsing Bearer token -> SecurityContext
 │   └── JwtService.java                    # HMAC-SHA token creation, parsing, validation, extraction
 └── service/
+    ├── AdminService.java                  # getAllUsers, getAllTransactions, freezeWallet, activateWallet
     ├── AuthService.java                   # register, login
+    ├── TransactionService.java            # transfer, getTransactionHistory
     ├── UserService.java                   # getUserProfile, updateUserProfile
-    └── WalletService.java                 # getWalletByUserId
+    └── WalletService.java                 # getWalletByUserId, addMoney, withdraw
 ```
 
 ---
@@ -90,42 +101,47 @@ src/main/java/com/wallet/
 3. **`GET /api/users/me`** ➡️ Extracts `userId` via `@AuthenticationPrincipal` from JWT, returns safe `UserProfileResponse` (200 OK). Blocks unauthenticated requests (403).
 4. **`PUT /api/users/me`** ➡️ Updates `name`/`phone`. Checks `existsByPhoneAndIdNot` (returns 409 if taken by someone else; allows if it's the user's own phone). Validates lengths (400).
 5. **`GET /api/wallet`** ➡️ Returns user's `walletId`, `balance` (`0.00`), `status` (`ACTIVE`).
+6. **`POST /api/wallet/add-money`** ➡️ Increases balance, persists `ADD_MONEY` `Transaction`, returns `TransactionResponse`.
+7. **`POST /api/wallet/withdraw`** ➡️ Validates sufficient balance, decreases balance, persists `WITHDRAW` `Transaction`, returns `TransactionResponse`.
+8. **`POST /api/transactions/transfer`** ➡️ Debits sender, credits receiver, creates `TRANSFER` ledger transaction under `@Transactional`.
+9. **`GET /api/transactions`** ➡️ Returns all transactions involving the user's wallet (both sent and received), newest first.
+10. **`GET /api/admin/users`** ➡️ Admin-only endpoint returning all registered user profiles.
+11. **`GET /api/admin/transactions`** ➡️ Admin-only endpoint returning all transactions across the platform.
+12. **`PUT /api/admin/wallets/{id}/freeze`** ➡️ Admin-only endpoint to freeze a user's wallet.
+13. **`PUT /api/admin/wallets/{id}/activate`** ➡️ Admin-only endpoint to unfreeze/activate a user's wallet.
 
 ---
 
-## 🚀 5. Next Immediate Steps: Phase 6 (Add Money & Withdraw)
+## 🚀 5. Next Steps for Tomorrow's Session
 
-When resuming in the next session, begin with **Phase 6** using the same file-by-file teaching method:
+### What is Completed Today (Phases 1 through 10 — 95%):
+- **All 13 Backend APIs** implemented and verified (Auth, Profile, Wallet Mutations, Atomic Transfers, History, Admin Operations, Wallet Freeze/Activate).
+- **Swagger / OpenAPI 3.0 UI** configured at `http://localhost:8080/swagger-ui/index.html` with interactive JWT Bearer authentication.
+- **Global CORS** enabled to allow any frontend domain/port to connect.
+- **`version_2_planning.md`** created with deadlock prevention (resource ordering), superadmin role promotion, idempotency keys, and counterparty history metadata.
 
-### Files to build in Phase 6:
-1. **`AmountRequest.java`** (`src/main/java/com/wallet/dto/request/AmountRequest.java`):
-   - `@NotNull`, `@DecimalMin(value = "0.01")`, `@Digits(integer = 15, fraction = 2)`
-2. **`TransactionResponse.java`** (`src/main/java/com/wallet/dto/response/TransactionResponse.java`):
-   - Fields matching PRD Section 15: `referenceId`, `type`, `amount`, `status`, `remarks`, `createdAt`
-3. **`InsufficientBalanceException.java`** (`src/main/java/com/wallet/exception/`):
-   - HTTP 400 with code `INSUFFICIENT_BALANCE`
-4. **`WalletFrozenException.java`** (`src/main/java/com/wallet/exception/`):
-   - HTTP 403 with code `WALLET_FROZEN`
-5. **Update `GlobalExceptionHandler.java`**:
-   - Add handlers for `InsufficientBalanceException` and `WalletFrozenException`.
-6. **Update `WalletService.java`**:
-   - Implement `addMoney(Long userId, BigDecimal amount)`:
-     - Verify wallet is `ACTIVE`.
-     - `wallet.setBalance(wallet.getBalance().add(amount))`.
-     - Create `Transaction` record (`ADD_MONEY`, `receiverWallet = wallet`, `senderWallet = null`, `SUCCESS`, unique UUID/`TX-...` referenceId).
-     - Run under `@Transactional`.
-   - Implement `withdraw(Long userId, BigDecimal amount)`:
-     - Verify wallet is `ACTIVE`.
-     - Check `wallet.getBalance().compareTo(amount) >= 0`. Throw `InsufficientBalanceException` if insufficient.
-     - `wallet.setBalance(wallet.getBalance().subtract(amount))`.
-     - Create `Transaction` record (`WITHDRAW`, `senderWallet = wallet`, `receiverWallet = null`, `SUCCESS`, unique referenceId).
-     - Run under `@Transactional`.
-7. **Update `WalletController.java`**:
-   - `POST /api/wallet/add-money` -> `@Valid @RequestBody AmountRequest`
-   - `POST /api/wallet/withdraw` -> `@Valid @RequestBody AmountRequest`
+---
+
+### Two Options to Tackle Tomorrow:
+
+#### Option A: Build the Full Frontend Web Application 🎨
+- Implement modern, glassmorphic UI connecting to `http://localhost:8080`:
+  - Login / Register tabs with JWT token management.
+  - Customer Wallet Dashboard (Live balance card, Add Money modal, Withdraw modal, P2P Transfer modal).
+  - Live Transaction History Table (color-coded badges for ADD_MONEY, WITHDRAW, TRANSFER).
+  - Admin Console (User directory, System-wide transactions, 1-click Freeze/Unfreeze toggle).
+
+#### Option B: Phase 11 — PRD Test Suite & README.md 🧪
+- JUnit 5 / Mockito automated test suite covering all 15 required PRD Section 18 test cases.
+- Comprehensive `README.md` documentation with architecture diagrams, setup instructions, and API docs.
 
 ---
 
 ## 💡 Quick Instruction for New Chat
-> **Prompt to resume next time**:
-> *"Read `context.md` and `Digital_Wallet_CORE_DETERMINISTIC_PRD(1).pdf`. We have completed Phase 5 (55%). Let's start Phase 6 file-by-file with the same teaching and interview explanation approach."*
+> **Prompt to resume tomorrow**:
+> *"Read `context.md`, `version_2_planning.md`, and `Digital_Wallet_CORE_DETERMINISTIC_PRD(1).pdf`. We have completed Phases 1–10 (95%). Let's continue with [Option A: Building the Frontend Web Application / Option B: Phase 11 Test Suite & README]."*
+
+
+
+
+

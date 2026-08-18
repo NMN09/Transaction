@@ -8,4 +8,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findBySenderWalletIdOrReceiverWalletIdOrderByCreatedAtDesc(
             Long senderWalletId, Long receiverWalletId);
+
+    List<Transaction> findAllByOrderByCreatedAtDesc();
 }

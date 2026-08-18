@@ -45,6 +45,27 @@ public class GlobalExceptionHandler {
                                 .body(new ErrorResponse(404, "NOT_FOUND", ex.getMessage(), req.getRequestURI()));
         }
 
+        @ExceptionHandler(InsufficientBalanceException.class)
+        public ResponseEntity<ErrorResponse> handleInsufficientBalance(InsufficientBalanceException ex,
+                        HttpServletRequest req) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new ErrorResponse(400, "INSUFFICIENT_BALANCE", ex.getMessage(), req.getRequestURI()));
+        }
+
+        @ExceptionHandler(WalletFrozenException.class)
+        public ResponseEntity<ErrorResponse> handleWalletFrozen(WalletFrozenException ex,
+                        HttpServletRequest req) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                .body(new ErrorResponse(403, "WALLET_FROZEN", ex.getMessage(), req.getRequestURI()));
+        }
+
+        @ExceptionHandler(SelfTransferException.class)
+        public ResponseEntity<ErrorResponse> handleSelfTransfer(SelfTransferException ex,
+                        HttpServletRequest req) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(new ErrorResponse(400, "VALIDATION_ERROR", ex.getMessage(), req.getRequestURI()));
+        }
+
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest req) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
