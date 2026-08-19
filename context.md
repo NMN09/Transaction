@@ -15,7 +15,7 @@
 
 ---
 
-## 📊 2. Overall Progress Status: 95% / 100%
+## 📊 2. Overall Progress Status: 100% / 100% (Core Deterministic MVP Fully Completed)
 
 ### Phase Status Breakdown:
 * [x] **Phase 1: Project Setup & Configuration (100% / 8%)** — Maven, JPA/MySQL, `.env` / `application.properties`.
@@ -28,7 +28,7 @@
 * [x] **Phase 8: Transaction History (100% / 6%)** — `GET /api/transactions` (Sorted newest first, IDOR safe, `@Transactional(readOnly = true)`).
 * [x] **Phase 9: Admin Operations & Wallet Freeze/Activate (100% / 8%)** — `GET /api/admin/users`, `GET /api/admin/transactions`, `PUT /api/admin/wallets/{id}/freeze`, `PUT /api/admin/wallets/{id}/activate`, `ROLE_ADMIN` protection.
 * [x] **Phase 10: Exception Handling & Swagger/OpenAPI (100% / 6%)** — Springdoc OpenAPI 3.0 UI, JWT Bearer Scheme, global CORS enabled.
-* [ ] **Phase 11: Unit/Integration Tests & README (0% / 8%)** — *NEXT UP*: All 15 PRD Section 18 test cases + `README.md`.
+* [x] **Phase 11: Unit/Integration Tests & README (100% / 8%)** — 36 automated tests covering all PRD §18 test cases + PRD §21 End-to-End flow + comprehensive `README.md`.
 
 
 ---
