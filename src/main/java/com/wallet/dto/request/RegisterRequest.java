@@ -2,6 +2,7 @@ package com.wallet.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
@@ -12,10 +13,12 @@ public class RegisterRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Please enter a valid email address")
+    @Pattern(regexp = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", message = "Please enter a valid email address")
     private String email;
 
     @NotBlank(message = "Phone number is required")
     @Size(min = 10, max = 10, message = "Phone number must contain 10 digits")
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter a valid 10-digit Indian mobile number")
     private String phone;
 
     @NotBlank(message = "Password is required")

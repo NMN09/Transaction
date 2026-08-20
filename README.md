@@ -1,183 +1,439 @@
-# 💳 Digital Wallet Backend
+# Digital Wallet Backend
 
-> A production-grade, deterministic digital wallet backend built with **Java 21**, **Spring Boot 3.x**, **Spring Security + JWT**, and **MySQL 8.x**. Engineered with strict financial ledger principles, atomic dual-wallet transactions, robust IDOR prevention, and role-based access control.
+A simulated digital-wallet REST API built as a Java and Spring Boot learning project. The application supports user accounts, JWT authentication, wallet operations, peer-to-peer transfers, transaction history, and administrator wallet controls.
 
----
+This project handles simulated balances only. It is not connected to banks, cards, UPI, or real payment systems.
 
-## 🌟 Key Highlights & Architectural Strengths
+## Project status
 
-- **Atomic Financial Transactions**: Multi-wallet balance mutations execute inside isolated `@Transactional` service methods to guarantee zero balance inconsistency and automatic rollbacks on failure.
-- **Stateless JWT Authentication & BCrypt**: Cryptographically signed HMAC-SHA JWT bearer authentication with configurable TTL and zero-trust stateless authorization.
-- **Defensive API Design**: Whitelisted Request DTOs preventing Mass Assignment vulnerabilities, server-enforced authorization eliminating IDOR, and strict `@Digits(fraction = 2)` currency formatting.
-- **Comprehensive Error Contract**: Centralized `@RestControllerAdvice` returning uniform, machine-readable JSON error payloads matching RFC 7807 standards.
-- **100% Automated Test Suite**: 36 automated unit and integration test cases covering all edge cases (overdraft protection, self-transfers, wallet freeze states, RBAC enforcement, and PRD Section 21 End-to-End flows).
-- **Interactive OpenAPI 3.0 / Swagger UI**: Full interactive API documentation with built-in JWT Bearer token authorization.
+The core backend MVP is implemented. The repository currently contains:
 
----
+- The Spring Boot backend
+- MySQL persistence
+- Swagger/OpenAPI configuration
+- Unit, security, and service-level acceptance tests
+- A separate frontend design document
 
-## 🛠️ Technology Stack
+There is no frontend application in this repository yet. `FRONTEND_DESIGN.md` is a plan for possible future work.
 
-| Layer | Technology |
-| :--- | :--- |
-| **Language** | Java 21 (LTS) |
-| **Framework** | Spring Boot 3.5.x (Modular Monolith) |
-| **Database** | MySQL 8.x |
-| **ORM / Persistence** | Spring Data JPA / Hibernate ORM |
-| **Security** | Spring Security 6.x + JJWT (HMAC-SHA-256) |
-| **Validation** | Jakarta Bean Validation (Hibernate Validator) |
-| **Documentation** | Springdoc OpenAPI 3.0 (Swagger UI) |
-| **Build Tool** | Apache Maven 3.x |
-| **Testing** | JUnit 5, Mockito, Spring Security Test, MockMvc |
+## Technology stack
 
----
+| Area | Technology |
+| --- | --- |
+| Language | Java 21 |
+| Framework | Spring Boot 3.5.16 |
+| API | Spring Web, REST, JSON |
+| Persistence | Spring Data JPA, Hibernate |
+| Database | MySQL 8.x |
+| Security | Spring Security, JWT, BCrypt |
+| Validation | Jakarta Bean Validation |
+| API documentation | Springdoc OpenAPI / Swagger UI |
+| Testing | JUnit 5, Mockito, MockMvc, Spring Security Test |
+| Build tool | Maven Wrapper |
 
-## 🏛️ System Architecture & Package Layout
+## Implemented features
 
+### Authentication
+
+- Register a user with name, email, phone number, and password
+- Normalize email addresses before storing and looking them up
+- Hash passwords with BCrypt
+- Automatically create one active wallet with a zero balance
+- Log in with email and password
+- Return a signed JWT containing the user ID and role
+
+### User profile
+
+- View the authenticated user's profile
+- Update the authenticated user's name and phone number
+- Prevent duplicate phone numbers
+- Avoid exposing password hashes in API responses
+
+### Wallet operations
+
+- View the authenticated user's wallet
+- Add simulated money
+- Withdraw simulated money
+- Reject withdrawals that exceed the available balance
+- Reject financial operations when a wallet is frozen
+- Store monetary values with `BigDecimal`
+
+### Transfers and transaction history
+
+- Transfer simulated money to another registered user by email
+- Reject transfers to the sender's own account
+- Reject transfers involving a frozen sender or receiver wallet
+- Update both wallet balances and create the transaction record inside one Spring transaction
+- Return transaction history for the authenticated user's wallet only
+- Show transaction direction as `CREDIT` or `DEBIT`
+- Include counterparty details for transfers
+- Sort transaction history by creation time, newest first
+
+### Administration
+
+- List users and their wallet status
+- View the platform transaction list
+- Freeze a wallet
+- Activate a frozen wallet
+- Restrict `/api/admin/**` endpoints to users with the `ADMIN` role
+
+## Architecture
+
+The application is a single Spring Boot application organized into conventional layers:
+
+```text
+HTTP request
+    |
+    v
+Spring Security + JWT filter
+    |
+    v
+Controller
+    |
+    v
+Service / business rules / transaction boundary
+    |
+    v
+Spring Data JPA repository
+    |
+    v
+MySQL
 ```
+
+```text
 src/main/java/com/wallet/
-├── App.java                               # Spring Boot Application Entry Point
-├── config/
-│   ├── OpenApiConfig.java                 # Swagger 3.0 UI & JWT Bearer Security Scheme
-│   └── SecurityConfig.java                # Stateless Filter Chain, Global CORS, PasswordEncoder
-├── controller/
-│   ├── AdminController.java               # Admin operations (Users, Transactions, Wallet freeze/activate)
-│   ├── AuthController.java                # Public endpoints (Register, Login)
-│   ├── TransactionController.java         # Money transfer & transaction history
-│   ├── UserController.java                # User profile inspection & update
-│   └── WalletController.java              # Wallet balance, Add money, Withdraw money
-├── dto/
-│   ├── request/                           # Strictly validated request payloads
-│   │   ├── AmountRequest.java
-│   │   ├── LoginRequest.java
-│   │   ├── RegisterRequest.java
-│   │   ├── TransferRequest.java
-│   │   └── UpdateProfileRequest.java
-│   └── response/                          # Safe response DTOs (never exposing password hashes)
-│       ├── ErrorResponse.java
-│       ├── LoginResponse.java
-│       ├── RegisterResponse.java
-│       ├── TransactionResponse.java
-│       ├── UserProfileResponse.java
-│       └── WalletResponse.java
-├── entity/                                # JPA database entities & Enums
-│   ├── Role.java                          # USER, ADMIN
-│   ├── Transaction.java                   # Ledger records with reference IDs & timestamps
-│   ├── TransactionStatus.java             # SUCCESS, FAILED
-│   ├── TransactionType.java               # ADD_MONEY, WITHDRAW, TRANSFER
-│   ├── User.java                          # User entity
-│   ├── Wallet.java                        # 1-to-1 User wallet with BigDecimal balance
-│   └── WalletStatus.java                  # ACTIVE, FROZEN
-├── exception/                             # Custom business exceptions & Global Handler
-│   ├── EmailAlreadyExistsException.java   # 409 CONFLICT
-│   ├── GlobalExceptionHandler.java        # Centralized @RestControllerAdvice
-│   ├── InsufficientBalanceException.java  # 400 BAD_REQUEST
-│   ├── InvalidCredentialsException.java   # 401 UNAUTHORIZED
-│   ├── PhoneAlreadyExistsException.java   # 409 CONFLICT
-│   ├── ResourceNotFoundException.java     # 404 NOT_FOUND
-│   ├── SelfTransferException.java         # 400 BAD_REQUEST
-│   └── WalletFrozenException.java         # 403 WALLET_FROZEN
-├── repository/                            # Spring Data JPA repositories
-│   ├── TransactionRepository.java
-│   ├── UserRepository.java
-│   └── WalletRepository.java
-├── security/                              # Security filters and token management
-│   ├── JwtAuthenticationFilter.java       # OncePerRequestFilter parsing Bearer tokens
-│   └── JwtService.java                    # HMAC token signing, validation, claims extraction
-└── service/                               # Core transactional business logic
-    ├── AdminService.java
-    ├── AuthService.java
-    ├── TransactionService.java
-    ├── UserService.java
-    └── WalletService.java
+|-- App.java
+|-- config/
+|   |-- OpenApiConfig.java
+|   `-- SecurityConfig.java
+|-- controller/
+|   |-- AdminController.java
+|   |-- AuthController.java
+|   |-- TransactionController.java
+|   |-- UserController.java
+|   `-- WalletController.java
+|-- dto/
+|   |-- request/
+|   `-- response/
+|-- entity/
+|   |-- User.java
+|   |-- Wallet.java
+|   |-- Transaction.java
+|   `-- supporting enums
+|-- exception/
+|-- repository/
+|-- security/
+`-- service/
 ```
 
----
+Controllers use request and response DTOs rather than returning JPA entities directly. Protected user endpoints obtain the authenticated user ID from Spring Security instead of accepting a user ID from the request.
 
-## 📋 REST API Specification
+## Data model
 
-### 1. Authentication (`/api/auth`)
+### User
+
+- Unique email and phone number
+- BCrypt password hash
+- `USER` or `ADMIN` role
+- UTC creation timestamp
+
+### Wallet
+
+- One-to-one relationship with a user
+- `BigDecimal(19,2)` balance
+- `ACTIVE` or `FROZEN` status
+
+### Transaction
+
+- Optional sender wallet
+- Optional receiver wallet
+- `ADD_MONEY`, `WITHDRAW`, or `TRANSFER` type
+- `SUCCESS` or `FAILED` status
+- Unique reference ID
+- Amount, optional remarks, and UTC creation timestamp
+
+The wallet references represent each operation as follows:
+
+| Operation | Sender wallet | Receiver wallet |
+| --- | --- | --- |
+| Add money | `null` | User wallet |
+| Withdraw | User wallet | `null` |
+| Transfer | Sender wallet | Receiver wallet |
+
+## API endpoints
+
+### Authentication
+
 | Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Public | Registers user and automatically provisions an `ACTIVE` wallet with `0.00` balance. |
-| `POST` | `/api/auth/login` | Public | Validates credentials via BCrypt and returns signed JWT token with expiry. |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | Public | Register a user and create a wallet |
+| `POST` | `/api/auth/login` | Public | Authenticate and receive a JWT |
 
-### 2. User Profile (`/api/users`)
+### User
+
 | Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/users/me` | User / Admin | Returns authenticated user's profile information. |
-| `PUT` | `/api/users/me` | User / Admin | Updates user's `name` and `phone` with uniqueness validation. |
+| --- | --- | --- | --- |
+| `GET` | `/api/users/me` | Authenticated | Get the current user's profile |
+| `PUT` | `/api/users/me` | Authenticated | Update the current user's name and phone |
 
-### 3. Wallet Operations (`/api/wallet`)
+### Wallet
+
 | Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/wallet` | User / Admin | Retrieves authenticated user's wallet ID, balance, and status. |
-| `POST` | `/api/wallet/add-money` | User / Admin | Deposits simulated funds and logs an `ADD_MONEY` transaction. |
-| `POST` | `/api/wallet/withdraw` | User / Admin | Withdraws funds with overdraft protection and logs a `WITHDRAW` transaction. |
+| --- | --- | --- | --- |
+| `GET` | `/api/wallet` | Authenticated | Get the current user's wallet |
+| `POST` | `/api/wallet/add-money` | Authenticated | Add simulated money |
+| `POST` | `/api/wallet/withdraw` | Authenticated | Withdraw simulated money |
 
-### 4. P2P Transfers & History (`/api/transactions`)
+### Transactions
+
 | Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/transactions/transfer` | User / Admin | Executes atomic dual-wallet transfer to receiver's email address. |
-| `GET` | `/api/transactions` | User / Admin | Returns complete transaction history involving user's wallet (newest first). |
+| --- | --- | --- | --- |
+| `POST` | `/api/transactions/transfer` | Authenticated | Transfer money to another registered user |
+| `GET` | `/api/transactions` | Authenticated | Get the current user's transaction history |
 
-### 5. Administration (`/api/admin`)
+### Administration
+
 | Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/admin/users` | `ROLE_ADMIN` | Lists all registered platform users. |
-| `GET` | `/api/admin/transactions` | `ROLE_ADMIN` | Lists platform-wide transaction ledger. |
-| `PUT` | `/api/admin/wallets/{id}/freeze` | `ROLE_ADMIN` | Freezes user wallet (blocks add, withdraw, transfer). |
-| `PUT` | `/api/admin/wallets/{id}/activate` | `ROLE_ADMIN` | Activates frozen user wallet. |
+| --- | --- | --- | --- |
+| `GET` | `/api/admin/users` | `ADMIN` | List users and wallet information |
+| `GET` | `/api/admin/transactions` | `ADMIN` | List all transactions |
+| `PUT` | `/api/admin/wallets/{walletId}/freeze` | `ADMIN` | Freeze a wallet |
+| `PUT` | `/api/admin/wallets/{walletId}/activate` | `ADMIN` | Activate a wallet |
 
----
+## Example requests
 
-## ⚙️ Environment Configuration
+### Register
 
-Create a `.env` file in the root directory (or use `.env.example` as a template):
+```http
+POST /api/auth/register
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Naman",
+  "email": "naman@example.com",
+  "phone": "9876543210",
+  "password": "Password123!"
+}
+```
+
+### Login
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "naman@example.com",
+  "password": "Password123!"
+}
+```
+
+### Add money or withdraw
+
+```json
+{
+  "amount": 5000.00
+}
+```
+
+### Transfer
+
+```json
+{
+  "receiverEmail": "rahul@example.com",
+  "amount": 2000.00,
+  "remarks": "Dinner"
+}
+```
+
+Protected endpoints require this header:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+## Error responses
+
+Application and Spring Security errors use a shared project-specific JSON structure:
+
+```json
+{
+  "timestamp": "2026-08-19T16:30:00Z",
+  "status": 400,
+  "code": "INSUFFICIENT_BALANCE",
+  "message": "Insufficient wallet balance",
+  "path": "/api/wallet/withdraw"
+}
+```
+
+Common codes include:
+
+| Situation | HTTP status | Code |
+| --- | --- | --- |
+| Request validation failure | `400` | `VALIDATION_ERROR` |
+| Insufficient balance | `400` | `INSUFFICIENT_BALANCE` |
+| Invalid login or missing/invalid JWT | `401` | `UNAUTHORIZED` |
+| Frozen wallet | `403` | `WALLET_FROZEN` |
+| Insufficient role permissions | `403` | `FORBIDDEN` |
+| User or wallet not found | `404` | `NOT_FOUND` |
+| Duplicate email or phone | `409` | `CONFLICT` |
+| Unexpected application error | `500` | `INTERNAL_ERROR` |
+
+This is a custom error contract. It is inspired by structured API error responses but does not claim full RFC 7807 compliance.
+
+## Local setup
+
+### Prerequisites
+
+- Java 21
+- MySQL 8.x
+- Git
+
+Maven does not need to be installed separately because the repository includes the Maven Wrapper.
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd Spring
+```
+
+### 2. Create the database
+
+```sql
+CREATE DATABASE digital_wallet;
+```
+
+### 3. Configure environment variables
+
+Copy `.env.example` to `.env` and replace the placeholder values:
 
 ```properties
-DB_URL=jdbc:mysql://localhost:3306/digital_wallet?createDatabaseIfNotExist=true&useSSL=false
+DB_URL=jdbc:mysql://localhost:3306/digital_wallet
 DB_USERNAME=root
-DB_PASSWORD=your_mysql_password
-JWT_SECRET=your_super_secret_jwt_key_that_is_at_least_256_bits_long_for_hmac_sha!
+DB_PASSWORD=your_database_password
+JWT_SECRET=replace_with_a_secret_of_at_least_32_characters
 JWT_EXPIRATION_SECONDS=3600
 ```
 
----
+Do not commit `.env`. It is excluded by `.gitignore`.
 
-## 🚀 Running the Application
+### 4. Run the application
 
-### 1. Build and Run via Maven Wrapper
+On Windows PowerShell:
+
 ```powershell
-./mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run
 ```
 
-The application starts on `http://localhost:8080`.
+On macOS or Linux:
 
-### 2. Interactive Swagger UI
-Explore and test all endpoints directly in your browser:
+```bash
+./mvnw spring-boot:run
 ```
+
+The API starts at `http://localhost:8080`.
+
+### 5. Open Swagger UI
+
+```text
 http://localhost:8080/swagger-ui/index.html
 ```
-Click **Authorize** (top right) and paste your Bearer token: `Bearer <your_token>`.
 
----
+Use the Swagger **Authorize** dialog to provide a JWT when testing protected endpoints.
 
-## 🧪 Running the Test Suite
+## Creating a local administrator
 
-Execute the entire test suite (36 unit, security, and integration test cases):
+Registration always creates a normal `USER`, as required by the current MVP. There is no public role-promotion endpoint.
 
-```powershell
-./mvnw.cmd test
+For local development, register a user and then update that user's role directly in the development database:
+
+```sql
+UPDATE users
+SET role = 'ADMIN'
+WHERE email = 'admin@example.com';
 ```
 
-### Test Coverage Highlights:
-- **`AuthServiceTest`**: Valid registration, auto-wallet provisioning, duplicate email rejection (409), duplicate phone rejection (409), login validation (401).
-- **`WalletServiceTest`**: Add money balance increment, withdraw deduction, overdraft protection (400), frozen wallet lockouts (403).
-- **`TransactionServiceTest`**: Atomic dual-wallet debit & credit, self-transfer rejection (400), non-existent receiver rejection (404), frozen counterparty handling, transaction history isolation.
-- **`SecurityAndRoleIntegrationTest`**: Unauthenticated endpoint rejection (403/401), role-based authorization matrix (`ROLE_USER` vs `ROLE_ADMIN`).
-- **`EndToEndAcceptanceTest`**: Complete 18-step verification per PRD Section 21.
+Log in again after changing the role so the new JWT contains the `ADMIN` claim. Do not expose direct role updates as an unauthenticated production feature.
 
----
+## Tests
 
-## 📄 License
-This project is licensed under the MIT License.
+Run the test suite with:
+
+```powershell
+.\mvnw.cmd test
+```
+
+The current suite contains 36 tests across:
+
+- Authentication service behavior
+- User profile behavior
+- Wallet add-money and withdrawal rules
+- Transfer validation and balance changes
+- Transaction-history mapping
+- Admin wallet controls
+- JWT generation and tamper detection
+- Security status and role responses
+- The PRD acceptance flow
+
+The service tests primarily use Mockito. The security tests use Spring Boot and MockMvc, while the acceptance test uses Spring services and the configured MySQL database.
+
+Important: the acceptance test clears transaction, wallet, and user tables during setup. Run it only against a dedicated local/test database, never against a database containing data you need to preserve.
+
+The repository contains previous Maven Surefire reports showing 36 passing tests. Test results should always be regenerated after code or configuration changes rather than assumed from old reports.
+
+## Current limitations
+
+This is an educational MVP, not a real payment system. Known limitations include:
+
+- No real-money integration
+- No frontend implementation yet
+- No pagination or server-side transaction filtering
+- No refresh tokens, token revocation, or account-session management
+- No database migration tool such as Flyway or Liquibase
+- Hibernate currently uses `ddl-auto=update`
+- SQL logging is enabled for development
+- CORS currently permits all origin patterns
+- Wallet updates do not yet use optimistic or pessimistic locking
+- Concurrent balance-changing requests have not been stress-tested
+- Tests do not yet use an isolated Testcontainers database
+- No idempotency keys for retry-safe financial requests
+- No formal double-entry accounting ledger
+- No deployment or CI/CD configuration
+
+`@Transactional` keeps each wallet operation within one database transaction and provides rollback on exceptions. It does not, by itself, guarantee correctness for every possible concurrent-update scenario. Concurrency controls are planned as future improvements.
+
+## Possible next improvements
+
+- Add pessimistic locking or `@Version`-based optimistic locking for wallet updates
+- Add concurrent-transfer tests
+- Use Testcontainers with a dedicated MySQL test database
+- Add Flyway migrations and separate development/test/production profiles
+- Tighten CORS for the deployed frontend origin
+- Improve validation for trimmed names and numeric phone numbers
+- Expand request-parsing and exception-handler tests
+- Add a CI workflow
+- Add Docker support and deploy the API
+- Implement the separately documented frontend if full-stack presentation is desired
+
+## Project purpose
+
+This project was built to practise and demonstrate:
+
+- Spring Boot request flow and dependency injection
+- REST API design
+- Spring Data JPA relationships
+- Spring Security and JWT authentication
+- Server-side authorization
+- BCrypt password hashing
+- Bean Validation
+- Transaction boundaries
+- Monetary calculations with `BigDecimal`
+- Unit and integration testing
+- API documentation
+
+It should be presented as a learning-focused backend project with a completed core MVP and a clearly documented improvement roadmap.

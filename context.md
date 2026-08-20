@@ -5,31 +5,27 @@
 ---
 
 ## 📌 1. Project Overview & Rules
-* **Project Name**: Digital Wallet Backend
+* **Project Name**: Digital Wallet Backend & Full-Stack Platform
 * **Specification Source**: `Digital_Wallet_CORE_DETERMINISTIC_PRD(1).pdf` (in root directory).
-* **Tech Stack**: Java 17/21, Spring Boot 3.x, Maven, MySQL 8.x, Spring Data JPA / Hibernate, Spring Security + JWT, Jakarta Validation, BCrypt.
-* **Core Philosophy**: Deterministic MVP implementation. No out-of-scope features (no Redis, Kafka, real money, bank APIs, microservices, frontend). Simulated money only.
-* **Development Approach**: 
-  - **File-by-File Interactive Learning**: Explain architectural rationale, annotations, security considerations, and senior-level interview talking points for every single file before creation.
-  - **Strict Validation & Security**: Whitelist DTOs, prevent Mass Assignment and IDOR vulnerabilities, stateless JWT auth, comprehensive `@RestControllerAdvice` error responses matching PRD Section 16.
+* **Tech Stack**: Java 21, Spring Boot 3.5.x, Maven, MySQL 8.x, Spring Data JPA / Hibernate, Spring Security 6.x + JJWT, Jakarta Validation, BCrypt.
+* **Core Philosophy**: Deterministic implementation with zero financial inconsistencies. Atomic multi-wallet balance mutations, stateless JWT authentication, IDOR and Mass Assignment defenses, and RFC 7807 uniform JSON error contracts.
 
 ---
 
-## 📊 2. Overall Progress Status: 100% / 100% (Core Deterministic MVP Fully Completed)
+## 📊 2. Overall Progress Status: 100% / 100% (Core Deterministic MVP + Phase 11 Completed)
 
 ### Phase Status Breakdown:
-* [x] **Phase 1: Project Setup & Configuration (100% / 8%)** — Maven, JPA/MySQL, `.env` / `application.properties`.
-* [x] **Phase 2: Database Entities & Repositories (100% / 12%)** — `User`, `Wallet`, `Transaction`, Enums (`Role`, `WalletStatus`, `TransactionType`, `TransactionStatus`), Repositories.
-* [x] **Phase 3: Registration & Automatic Wallet Creation (100% / 10%)** — `POST /api/auth/register`, password hashing, duplicate 409 checks, auto wallet creation with 0.00 balance.
-* [x] **Phase 4: Spring Security, BCrypt & JWT Login (100% / 12%)** — `POST /api/auth/login`, `JwtService`, `JwtAuthenticationFilter`, `SecurityConfig`.
-* [x] **Phase 5: User Profile & Wallet Inspection Endpoints (100% / 8%)** — `GET /api/users/me`, `PUT /api/users/me`, `GET /api/wallet`.
-* [x] **Phase 6: Add Money & Withdraw (100% / 10%)** — `POST /api/wallet/add-money`, `POST /api/wallet/withdraw`, balance mutation, transaction ledger creation, `@Transactional`.
-* [x] **Phase 7: Atomic Money Transfer (100% / 12%)** — `POST /api/transactions/transfer` with `@Transactional`, IDOR safety, freeze & balance checks.
-* [x] **Phase 8: Transaction History (100% / 6%)** — `GET /api/transactions` (Sorted newest first, IDOR safe, `@Transactional(readOnly = true)`).
-* [x] **Phase 9: Admin Operations & Wallet Freeze/Activate (100% / 8%)** — `GET /api/admin/users`, `GET /api/admin/transactions`, `PUT /api/admin/wallets/{id}/freeze`, `PUT /api/admin/wallets/{id}/activate`, `ROLE_ADMIN` protection.
-* [x] **Phase 10: Exception Handling & Swagger/OpenAPI (100% / 6%)** — Springdoc OpenAPI 3.0 UI, JWT Bearer Scheme, global CORS enabled.
-* [x] **Phase 11: Unit/Integration Tests & README (100% / 8%)** — 36 automated tests covering all PRD §18 test cases + PRD §21 End-to-End flow + comprehensive `README.md`.
-
+* [x] **Phase 1: Project Setup & Configuration (100%)** — Maven, JPA/MySQL, `.env` / `application.properties`.
+* [x] **Phase 2: Database Entities & Repositories (100%)** — `User`, `Wallet`, `Transaction`, Enums (`Role`, `WalletStatus`, `TransactionType`, `TransactionStatus`), Repositories.
+* [x] **Phase 3: Registration & Automatic Wallet Creation (100%)** — `POST /api/auth/register`, password hashing, duplicate 409 checks, auto wallet creation with 0.00 balance.
+* [x] **Phase 4: Spring Security, BCrypt & JWT Login (100%)** — `POST /api/auth/login`, `JwtService`, `JwtAuthenticationFilter`, `SecurityConfig`.
+* [x] **Phase 5: User Profile & Wallet Inspection Endpoints (100%)** — `GET /api/users/me`, `PUT /api/users/me`, `GET /api/wallet`.
+* [x] **Phase 6: Add Money & Withdraw (100%)** — `POST /api/wallet/add-money`, `POST /api/wallet/withdraw`, balance mutation, transaction ledger creation, `@Transactional`.
+* [x] **Phase 7: Atomic Money Transfer (100%)** — `POST /api/transactions/transfer` with `@Transactional`, IDOR safety, freeze & balance checks.
+* [x] **Phase 8: Transaction History (100%)** — `GET /api/transactions` (Sorted newest first, IDOR safe, `@Transactional(readOnly = true)`).
+* [x] **Phase 9: Admin Operations & Wallet Freeze/Activate (100%)** — `GET /api/admin/users`, `GET /api/admin/transactions`, `PUT /api/admin/wallets/{id}/freeze`, `PUT /api/admin/wallets/{id}/activate`, `ROLE_ADMIN` protection.
+* [x] **Phase 10: Exception Handling & Swagger/OpenAPI (100%)** — Springdoc OpenAPI 3.0 UI, JWT Bearer Scheme, global CORS enabled.
+* [x] **Phase 11: Unit/Integration Tests & Documentation (100%)** — 36 automated tests passing with 0 failures, comprehensive `README.md`, and complete `FRONTEND_DESIGN.md`.
 
 ---
 
@@ -39,26 +35,28 @@
 src/main/java/com/wallet/
 ├── App.java                               # Spring Boot Application Entry Point
 ├── config/
-│   └── SecurityConfig.java                # Spring Security filter chain (Stateless, JWT Filter, BCrypt bean, Admin RBAC)
+│   ├── OpenApiConfig.java                 # Swagger 3.0 UI & JWT Bearer Security Scheme
+│   └── SecurityConfig.java                # Stateless Filter Chain, 401/403 Error Handlers, CORS, PasswordEncoder
 ├── controller/
-│   ├── AdminController.java               # GET /api/admin/users, GET /api/admin/transactions, PUT /api/admin/wallets/{id}/freeze & activate
-│   ├── AuthController.java                # POST /api/auth/register, POST /api/auth/login
-│   ├── TransactionController.java         # POST /api/transactions/transfer, GET /api/transactions
-│   ├── UserController.java                # GET /api/users/me, PUT /api/users/me
-│   └── WalletController.java              # GET /api/wallet, POST /api/wallet/add-money, POST /api/wallet/withdraw
+│   ├── AdminController.java               # Admin operations (Users, Transactions, Wallet freeze/activate)
+│   ├── AuthController.java                # Public endpoints (Register, Login)
+│   ├── TransactionController.java         # Money transfer & transaction history
+│   ├── UserController.java                # User profile inspection & update
+│   └── WalletController.java              # Wallet balance, Add money, Withdraw money
 ├── dto/
-│   ├── request/
+│   ├── request/                           # Strictly validated request payloads
 │   │   ├── AmountRequest.java             # amount (NotNull, DecimalMin, Digits)
 │   │   ├── LoginRequest.java              # email, password
 │   │   ├── RegisterRequest.java           # name, email, phone, password
 │   │   ├── TransferRequest.java           # receiverEmail, amount, remarks
 │   │   └── UpdateProfileRequest.java      # name, phone (whitelisted to prevent mass assignment)
-│   └── response/
+│   └── response/                          # Safe response DTOs (never exposing password hashes)
+│       ├── AdminUserResponse.java         # id, name, email, phone, role, walletId, walletStatus, createdAt
 │       ├── ErrorResponse.java             # timestamp, status, code, message, path
-│       ├── LoginResponse.java             # token, expiresIn
+│       ├── LoginResponse.java             # token, expiresIn (3600)
 │       ├── RegisterResponse.java          # message
-│       ├── TransactionResponse.java       # referenceId, type, amount, status, remarks, createdAt
-│       ├── UserProfileResponse.java       # id, name, email, phone, role, createdAt (no passwordHash!)
+│       ├── TransactionResponse.java       # referenceId, type, amount, direction, counterparty, status, remarks, createdAt
+│       ├── UserProfileResponse.java       # id, name, email, phone, role, createdAt
 │       └── WalletResponse.java            # walletId, balance, status
 ├── entity/
 │   ├── Role.java                          # Enum: USER, ADMIN
@@ -70,13 +68,13 @@ src/main/java/com/wallet/
 │   └── WalletStatus.java                  # Enum: ACTIVE, FROZEN
 ├── exception/
 │   ├── EmailAlreadyExistsException.java   # 409 CONFLICT
-│   ├── GlobalExceptionHandler.java        # @RestControllerAdvice handling 400, 401, 403, 404, 409, 500
+│   ├── GlobalExceptionHandler.java        # Centralized @RestControllerAdvice
 │   ├── InsufficientBalanceException.java  # 400 BAD_REQUEST
 │   ├── InvalidCredentialsException.java   # 401 UNAUTHORIZED
 │   ├── PhoneAlreadyExistsException.java   # 409 CONFLICT
 │   ├── ResourceNotFoundException.java     # 404 NOT_FOUND
 │   ├── SelfTransferException.java         # 400 BAD_REQUEST
-│   └── WalletFrozenException.java         # 403 FORBIDDEN
+│   └── WalletFrozenException.java         # 403 WALLET_FROZEN
 ├── repository/
 │   ├── TransactionRepository.java         # findBySenderWalletIdOrReceiverWalletIdOrderByCreatedAtDesc, findAllByOrderByCreatedAtDesc
 │   ├── UserRepository.java                # findByEmail, existsByEmail, existsByPhone, existsByPhoneAndIdNot
@@ -85,63 +83,57 @@ src/main/java/com/wallet/
 │   ├── JwtAuthenticationFilter.java       # OncePerRequestFilter parsing Bearer token -> SecurityContext
 │   └── JwtService.java                    # HMAC-SHA token creation, parsing, validation, extraction
 └── service/
-    ├── AdminService.java                  # getAllUsers, getAllTransactions, freezeWallet, activateWallet
+    ├── AdminService.java                  # getAllUsers (with wallet metadata), getAllTransactions, freezeWallet, activateWallet
     ├── AuthService.java                   # register, login
-    ├── TransactionService.java            # transfer, getTransactionHistory
+    ├── TransactionService.java            # transfer, getTransactionHistory (with direction & counterparty)
     ├── UserService.java                   # getUserProfile, updateUserProfile
     └── WalletService.java                 # getWalletByUserId, addMoney, withdraw
+
+src/test/java/com/wallet/
+├── AppTests.java                          # Spring context boot test
+├── EndToEndAcceptanceTest.java            # PRD §21 18-step acceptance test on MySQL
+├── controller/
+│   └── SecurityAndRoleIntegrationTest.java# 401 Unauthorized & 403 Forbidden RBAC tests
+├── security/
+│   └── JwtServiceTest.java                # Token generation & signature validation tests
+└── service/
+    ├── AdminServiceTest.java              # Admin queries & wallet moderation tests
+    ├── AuthServiceTest.java               # Registration, duplicate conflict, login tests
+    ├── TransactionServiceTest.java        # Atomic transfer, rollback, counterparty tests
+    ├── UserServiceTest.java               # Profile retrieval & update tests
+    └── WalletServiceTest.java             # Add money, withdraw, overdraft, freeze tests
 ```
 
 ---
 
-## 🧪 4. Verified Working APIs (Tested in Postman)
+## 🧪 4. Automated Test Suite (36 Tests Passing — 0 Failures)
 
-1. **`POST /api/auth/register`** ➡️ Creates `User` + initial `Wallet` (`balance: 0.00`, `status: ACTIVE`). Returns `201 Created`.
-2. **`POST /api/auth/login`** ➡️ Validates credentials via BCrypt, returns signed JWT token (`expiresIn: 3600`).
-3. **`GET /api/users/me`** ➡️ Extracts `userId` via `@AuthenticationPrincipal` from JWT, returns safe `UserProfileResponse` (200 OK). Blocks unauthenticated requests (403).
-4. **`PUT /api/users/me`** ➡️ Updates `name`/`phone`. Checks `existsByPhoneAndIdNot` (returns 409 if taken by someone else; allows if it's the user's own phone). Validates lengths (400).
-5. **`GET /api/wallet`** ➡️ Returns user's `walletId`, `balance` (`0.00`), `status` (`ACTIVE`).
-6. **`POST /api/wallet/add-money`** ➡️ Increases balance, persists `ADD_MONEY` `Transaction`, returns `TransactionResponse`.
-7. **`POST /api/wallet/withdraw`** ➡️ Validates sufficient balance, decreases balance, persists `WITHDRAW` `Transaction`, returns `TransactionResponse`.
-8. **`POST /api/transactions/transfer`** ➡️ Debits sender, credits receiver, creates `TRANSFER` ledger transaction under `@Transactional`.
-9. **`GET /api/transactions`** ➡️ Returns all transactions involving the user's wallet (both sent and received), newest first.
-10. **`GET /api/admin/users`** ➡️ Admin-only endpoint returning all registered user profiles.
-11. **`GET /api/admin/transactions`** ➡️ Admin-only endpoint returning all transactions across the platform.
-12. **`PUT /api/admin/wallets/{id}/freeze`** ➡️ Admin-only endpoint to freeze a user's wallet.
-13. **`PUT /api/admin/wallets/{id}/activate`** ➡️ Admin-only endpoint to unfreeze/activate a user's wallet.
+Ran via `./mvnw.cmd test`:
+```
+[INFO] Results:
+[INFO] Tests run: 36, Failures: 0, Errors: 0, Skipped: 0
+[INFO] BUILD SUCCESS
+```
 
 ---
 
-## 🚀 5. Next Steps for Tomorrow's Session
+## 📋 5. Preserved Action Items for Next Session
 
-### What is Completed Today (Phases 1 through 10 — 95%):
-- **All 13 Backend APIs** implemented and verified (Auth, Profile, Wallet Mutations, Atomic Transfers, History, Admin Operations, Wallet Freeze/Activate).
-- **Swagger / OpenAPI 3.0 UI** configured at `http://localhost:8080/swagger-ui/index.html` with interactive JWT Bearer authentication.
-- **Global CORS** enabled to allow any frontend domain/port to connect.
-- **`version_2_planning.md`** created with deadlock prevention (resource ordering), superadmin role promotion, idempotency keys, and counterparty history metadata.
+Based on our architectural review, here is the exact checklist to tackle in the next session:
 
----
+### 🛠️ Backend Enhancements & Minor Fixes:
+1. **Self-Transfer Error Code**: In `GlobalExceptionHandler.java`, ensure `SelfTransferException` maps to code `"SELF_TRANSFER"` (instead of generic `"VALIDATION_ERROR"`).
+2. **Phone Number Regex Validation**: Add `@Pattern(regexp = "\\d{10}", message = "Phone must be exactly 10 digits")` to `RegisterRequest.java` and `UpdateProfileRequest.java`.
+3. **Hide DevTools Stack Traces**: Add `server.error.include-stacktrace=never` in `src/main/resources/application.properties` to ensure zero stack trace leakage in all environments.
+4. **CORS Deployment Policy**: Review allowed origins in `SecurityConfig.java` for production locking.
 
-### Two Options to Tackle Tomorrow:
-
-#### Option A: Build the Full Frontend Web Application 🎨
-- Implement modern, glassmorphic UI connecting to `http://localhost:8080`:
-  - Login / Register tabs with JWT token management.
-  - Customer Wallet Dashboard (Live balance card, Add Money modal, Withdraw modal, P2P Transfer modal).
-  - Live Transaction History Table (color-coded badges for ADD_MONEY, WITHDRAW, TRANSFER).
-  - Admin Console (User directory, System-wide transactions, 1-click Freeze/Unfreeze toggle).
-
-#### Option B: Phase 11 — PRD Test Suite & README.md 🧪
-- JUnit 5 / Mockito automated test suite covering all 15 required PRD Section 18 test cases.
-- Comprehensive `README.md` documentation with architecture diagrams, setup instructions, and API docs.
+### 🎨 Frontend Implementation Items:
+1. **Role Check Alignment**: Ensure frontend navigation checks `userRole === "ADMIN"` (since JWT claim payload contains `"ADMIN"`, not `"ROLE_ADMIN"`).
+2. **Session Timer Persistence**: Store `expiresAt` (`Date.now() + 3600000`) in `localStorage` so refreshing the browser tab (F5) accurately preserves the remaining session time rather than resetting to 60 minutes.
+3. **Build Frontend Web App**: Implement the complete modern, glassmorphic UI as specified in `FRONTEND_DESIGN.md` (Auth, Dashboard, Modals, History Table, Admin Panel).
 
 ---
 
 ## 💡 Quick Instruction for New Chat
-> **Prompt to resume tomorrow**:
-> *"Read `context.md`, `version_2_planning.md`, and `Digital_Wallet_CORE_DETERMINISTIC_PRD(1).pdf`. We have completed Phases 1–10 (95%). Let's continue with [Option A: Building the Frontend Web Application / Option B: Phase 11 Test Suite & README]."*
-
-
-
-
-
+> **Prompt to resume next session**:
+> *"Read `context.md`, `FRONTEND_DESIGN.md`, and `README.md`. All 36 backend tests pass. Let's work through the checklist in Section 5 of `context.md` (minor backend validations & building the frontend web app)."*

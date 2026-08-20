@@ -87,6 +87,9 @@ public class TransactionService {
                 savedTx.getReferenceId(),
                 savedTx.getType(),
                 savedTx.getAmount(),
+                "DEBIT",
+                receiver.getEmail(),
+                receiver.getName(),
                 savedTx.getStatus(),
                 savedTx.getRemarks(),
                 savedTx.getCreatedAt()
@@ -102,14 +105,45 @@ public class TransactionService {
                 .findBySenderWalletIdOrReceiverWalletIdOrderByCreatedAtDesc(wallet.getId(), wallet.getId());
 
         return transactions.stream()
-                .map(tx -> new TransactionResponse(
-                        tx.getReferenceId(),
-                        tx.getType(),
-                        tx.getAmount(),
-                        tx.getStatus(),
-                        tx.getRemarks(),
-                        tx.getCreatedAt()
-                ))
+                .map(tx -> {
+                    String direction;
+                    String counterpartyEmail = null;
+                    String counterpartyName = null;
+
+                    if (tx.getType() == TransactionType.ADD_MONEY) {
+                        direction = "CREDIT";
+                        counterpartyName = "Deposit";
+                    } else if (tx.getType() == TransactionType.WITHDRAW) {
+                        direction = "DEBIT";
+                        counterpartyName = "Withdrawal";
+                    } else { // TRANSFER
+                        if (tx.getSenderWallet() != null && tx.getSenderWallet().getId().equals(wallet.getId())) {
+                            direction = "DEBIT";
+                            if (tx.getReceiverWallet() != null && tx.getReceiverWallet().getUser() != null) {
+                                counterpartyEmail = tx.getReceiverWallet().getUser().getEmail();
+                                counterpartyName = tx.getReceiverWallet().getUser().getName();
+                            }
+                        } else {
+                            direction = "CREDIT";
+                            if (tx.getSenderWallet() != null && tx.getSenderWallet().getUser() != null) {
+                                counterpartyEmail = tx.getSenderWallet().getUser().getEmail();
+                                counterpartyName = tx.getSenderWallet().getUser().getName();
+                            }
+                        }
+                    }
+
+                    return new TransactionResponse(
+                            tx.getReferenceId(),
+                            tx.getType(),
+                            tx.getAmount(),
+                            direction,
+                            counterpartyEmail,
+                            counterpartyName,
+                            tx.getStatus(),
+                            tx.getRemarks(),
+                            tx.getCreatedAt()
+                    );
+                })
                 .toList();
     }
 }

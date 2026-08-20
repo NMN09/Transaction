@@ -68,6 +68,9 @@ public class WalletService {
                 savedTx.getReferenceId(),
                 savedTx.getType(),
                 savedTx.getAmount(),
+                "CREDIT",
+                null,
+                "Deposit",
                 savedTx.getStatus(),
                 savedTx.getRemarks(),
                 savedTx.getCreatedAt()
@@ -105,6 +108,9 @@ public class WalletService {
                 savedTx.getReferenceId(),
                 savedTx.getType(),
                 savedTx.getAmount(),
+                "DEBIT",
+                null,
+                "Withdrawal",
                 savedTx.getStatus(),
                 savedTx.getRemarks(),
                 savedTx.getCreatedAt()

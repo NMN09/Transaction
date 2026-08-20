@@ -1,7 +1,7 @@
 package com.wallet.service;
 
+import com.wallet.dto.response.AdminUserResponse;
 import com.wallet.dto.response.TransactionResponse;
-import com.wallet.dto.response.UserProfileResponse;
 import com.wallet.dto.response.WalletResponse;
 import com.wallet.entity.*;
 import com.wallet.exception.ResourceNotFoundException;
@@ -51,7 +51,7 @@ class AdminServiceTest {
     }
 
     @Test
-    @DisplayName("Admin can view all users")
+    @DisplayName("Admin can view all users with their wallet status and wallet ID")
     void getAllUsers_Success() {
         User user1 = new User();
         ReflectionTestUtils.setField(user1, "id", 1L);
@@ -65,13 +65,27 @@ class AdminServiceTest {
         user2.setEmail("admin@gmail.com");
         user2.setRole(Role.ADMIN);
 
-        when(userRepository.findAll()).thenReturn(List.of(user1, user2));
+        Wallet wallet1 = new Wallet();
+        ReflectionTestUtils.setField(wallet1, "id", 101L);
+        wallet1.setStatus(WalletStatus.ACTIVE);
 
-        List<UserProfileResponse> users = adminService.getAllUsers();
+        Wallet wallet2 = new Wallet();
+        ReflectionTestUtils.setField(wallet2, "id", 102L);
+        wallet2.setStatus(WalletStatus.FROZEN);
+
+        when(userRepository.findAll()).thenReturn(List.of(user1, user2));
+        when(walletRepository.findByUserId(1L)).thenReturn(Optional.of(wallet1));
+        when(walletRepository.findByUserId(2L)).thenReturn(Optional.of(wallet2));
+
+        List<AdminUserResponse> users = adminService.getAllUsers();
 
         assertEquals(2, users.size());
         assertEquals("Naman", users.get(0).getName());
+        assertEquals(101L, users.get(0).getWalletId());
+        assertEquals(WalletStatus.ACTIVE, users.get(0).getWalletStatus());
         assertEquals("Admin", users.get(1).getName());
+        assertEquals(102L, users.get(1).getWalletId());
+        assertEquals(WalletStatus.FROZEN, users.get(1).getWalletStatus());
     }
 
     @Test

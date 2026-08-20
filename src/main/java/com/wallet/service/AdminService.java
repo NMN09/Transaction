@@ -1,7 +1,7 @@
 package com.wallet.service;
 
+import com.wallet.dto.response.AdminUserResponse;
 import com.wallet.dto.response.TransactionResponse;
-import com.wallet.dto.response.UserProfileResponse;
 import com.wallet.dto.response.WalletResponse;
 import com.wallet.entity.Wallet;
 import com.wallet.entity.WalletStatus;
@@ -30,16 +30,21 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserProfileResponse> getAllUsers() {
+    public List<AdminUserResponse> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(user -> new UserProfileResponse(
-                        user.getId(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPhone(),
-                        user.getRole(),
-                        user.getCreatedAt()
-                ))
+                .map(user -> {
+                    Wallet wallet = walletRepository.findByUserId(user.getId()).orElse(null);
+                    return new AdminUserResponse(
+                            user.getId(),
+                            user.getName(),
+                            user.getEmail(),
+                            user.getPhone(),
+                            user.getRole(),
+                            wallet != null ? wallet.getId() : null,
+                            wallet != null ? wallet.getStatus() : null,
+                            user.getCreatedAt()
+                    );
+                })
                 .toList();
     }
 

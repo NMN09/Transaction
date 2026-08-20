@@ -108,6 +108,8 @@ class TransactionServiceTest {
         assertEquals(new BigDecimal("8000.00"), senderWallet.getBalance());   // 10000 - 2000
         assertEquals(new BigDecimal("4000.00"), receiverWallet.getBalance()); // 2000 + 2000
         assertEquals(TransactionType.TRANSFER, response.getType());
+        assertEquals("DEBIT", response.getDirection());
+        assertEquals("rahul@gmail.com", response.getCounterpartyEmail());
         assertEquals(TransactionStatus.SUCCESS, response.getStatus());
 
         // Verify wallets were updated
@@ -220,12 +222,15 @@ class TransactionServiceTest {
         Transaction tx1 = new Transaction();
         tx1.setReferenceId("TX-111");
         tx1.setType(TransactionType.ADD_MONEY);
+        tx1.setReceiverWallet(senderWallet);
         tx1.setAmount(new BigDecimal("10000.00"));
         tx1.setStatus(TransactionStatus.SUCCESS);
 
         Transaction tx2 = new Transaction();
         tx2.setReferenceId("TX-222");
         tx2.setType(TransactionType.TRANSFER);
+        tx2.setSenderWallet(senderWallet);
+        tx2.setReceiverWallet(receiverWallet);
         tx2.setAmount(new BigDecimal("2000.00"));
         tx2.setStatus(TransactionStatus.SUCCESS);
 
@@ -238,6 +243,9 @@ class TransactionServiceTest {
         // Assert
         assertEquals(2, history.size());
         assertEquals("TX-222", history.get(0).getReferenceId());
+        assertEquals("DEBIT", history.get(0).getDirection());
+        assertEquals("rahul@gmail.com", history.get(0).getCounterpartyEmail());
         assertEquals("TX-111", history.get(1).getReferenceId());
+        assertEquals("CREDIT", history.get(1).getDirection());
     }
 }

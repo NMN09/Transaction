@@ -9,6 +9,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -19,18 +20,24 @@ class SecurityAndRoleIntegrationTest {
     private MockMvc mockMvc;
 
     @Test
-    @DisplayName("PRD Test 6: Protected endpoint without JWT is rejected (403 Forbidden)")
-    void protectedEndpoint_WithoutToken_ReturnsForbidden() throws Exception {
+    @DisplayName("PRD Section 16 & Test 6: Missing/Invalid JWT returns HTTP 401 UNAUTHORIZED JSON")
+    void protectedEndpoint_WithoutToken_ReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/wallet"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.path").value("/api/wallet"));
     }
 
     @Test
-    @DisplayName("PRD Test 17: Normal USER role cannot access ADMIN endpoints (403 Forbidden)")
+    @DisplayName("PRD Section 16 & Test 17: Normal USER role calling ADMIN endpoint returns HTTP 403 FORBIDDEN JSON")
     @WithMockUser(username = "1", roles = {"USER"})
     void adminEndpoint_WithUserRole_ReturnsForbidden() throws Exception {
         mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.path").value("/api/admin/users"));
     }
 
     @Test

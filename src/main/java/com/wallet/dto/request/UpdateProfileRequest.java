@@ -1,6 +1,7 @@
 package com.wallet.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class UpdateProfileRequest {
@@ -11,6 +12,7 @@ public class UpdateProfileRequest {
 
     @NotBlank(message = "Phone number is required")
     @Size(min = 10, max = 10, message = "Phone number must contain 10 digits")
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter a valid 10-digit Indian mobile number")
     private String phone;
 
     public String getName() {

@@ -2,11 +2,13 @@ package com.wallet.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 public class LoginRequest {
 
     @NotBlank(message = "Email is required")
-    @Email(message = "Please enter a valid email address")
+    @Email(message = "Invalid email format")
+    @Pattern(regexp = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", message = "Please enter a valid email address")
     private String email;
 
     @NotBlank(message = "Password is required")

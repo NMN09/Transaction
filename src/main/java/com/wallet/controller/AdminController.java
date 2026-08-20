@@ -1,7 +1,7 @@
 package com.wallet.controller;
 
+import com.wallet.dto.response.AdminUserResponse;
 import com.wallet.dto.response.TransactionResponse;
-import com.wallet.dto.response.UserProfileResponse;
 import com.wallet.dto.response.WalletResponse;
 import com.wallet.service.AdminService;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +24,8 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<UserProfileResponse>> getAllUsers() {
-        List<UserProfileResponse> users = adminService.getAllUsers();
+    public ResponseEntity<List<AdminUserResponse>> getAllUsers() {
+        List<AdminUserResponse> users = adminService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 
